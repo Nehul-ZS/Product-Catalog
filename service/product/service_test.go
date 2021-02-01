@@ -1,29 +1,18 @@
-package service
+package product
 
 import (
 	"errors"
 	"exercises/Catalog/model"
-	"exercises/Catalog/store/brand"
-	"exercises/Catalog/store/product"
+	"exercises/Catalog/store"
 	"github.com/golang/mock/gomock"
 	"reflect"
 	"testing"
 )
 
-type products struct {
-	expIn   int
-	pOut    model.Prod
-	bOut    model.Brand
-	expOut  model.Prod
-	expPerr error
-	expBerr error
-	expErr  error
-}
-
-func TestCatService_GetById(t *testing.T) {
+func TestProdService_GetById(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	pS := product.NewMockStoreInterface(ctrl)
-	bS := brand.NewMockStoreInterface(ctrl)
+	pS := store.NewMockProduct(ctrl)
+	bS := store.NewMockBrand(ctrl)
 	testcases := []struct {
 		expIn   int
 		pOut    model.Prod
@@ -33,19 +22,19 @@ func TestCatService_GetById(t *testing.T) {
 		expBerr error
 		expErr  error
 	}{
-		{1, model.Prod{1, "Shoes", model.Brand{3, ""}}, model.Brand{3, "Puma"}, model.Prod{
-			1, "Shoes", model.Brand{3, "Puma"}}, nil, nil, error(nil)},
-		{3, model.Prod{3, "Cricket Shoes", model.Brand{5, ""}}, model.Brand{}, model.Prod{
-			3, "Cricket Shoes", model.Brand{5, ""}}, nil, errors.New("Brand Id not found"), errors.New("Brand Id not found")},
-		{5, model.Prod{}, model.Brand{}, model.Prod{}, errors.New("Id not found"), errors.New("Id not found"), errors.New("Id not found")},
+		{expIn: 1, pOut: model.Prod{Id: 1, Name: "Shoes",BrandDetails: model.Brand{3, ""}}, bOut: model.Brand{3, "Puma"}, expOut: model.Prod{
+			1, "Shoes", model.Brand{3, "Puma"}},expPerr: nil,expBerr: nil,expErr: error(nil)},
+		{expIn: 3, pOut: model.Prod{Id: 3, Name: "Cricket Shoes",BrandDetails: model.Brand{5, ""}}, bOut: model.Brand{},expOut: model.Prod{
+			3, "Cricket Shoes", model.Brand{5, ""}}, expPerr: nil,expBerr: errors.New("Brand Id not found"), expErr: errors.New("Brand Id not found")},
+		{expIn: 5, pOut: model.Prod{}, bOut: model.Brand{}, expOut: model.Prod{},expPerr: errors.New("Id not found"), expBerr: errors.New("Id not found"),expErr: errors.New("Id not found")},
 	}
 	for i, tc := range testcases {
 		pS.EXPECT().GetById(tc.expIn).Return(tc.pOut, tc.expPerr)
 		if tc.expPerr == nil {
 			bS.EXPECT().GetById(tc.pOut.BrandDetails.Id).Return(tc.bOut, tc.expBerr)
 		}
-		catServ := New(pS, bS)
-		res, err := catServ.GetById(tc.expIn)
+		prodService := New(pS, bS)
+		res, err := prodService.GetById(tc.expIn)
 		if !reflect.DeepEqual(err, tc.expErr) {
 			t.Errorf("For testcase %v, Expected %v error but got %v", i, tc.expErr, err)
 		}
@@ -55,10 +44,10 @@ func TestCatService_GetById(t *testing.T) {
 		}
 	}
 }
-func TestCatService_GetAll(t *testing.T) {
+func TestProdService_GetAll(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	pS := product.NewMockStoreInterface(ctrl)
-	bS := brand.NewMockStoreInterface(ctrl)
+	pS := store.NewMockProduct(ctrl)
+	bS := store.NewMockBrand(ctrl)
 	testcases := []struct {
 		pOut    []model.Prod
 		bOut    []model.Brand
@@ -67,11 +56,11 @@ func TestCatService_GetAll(t *testing.T) {
 		expBerr error
 		expErr  error
 	}{
-		{ []model.Prod{{1, "Shoes", model.Brand{3, ""}},{2, "Cricket Shoes", model.Brand{2, ""}}}, []model.Brand{{3, "Puma"},{2,"Nike"}}, []model.Prod{{
-			1, "Shoes", model.Brand{3, "Puma"}},{2, "Cricket Shoes", model.Brand{2, "Nike"}}}, nil, nil, nil},
-		{ []model.Prod{}, []model.Brand{}, []model.Prod{},  errors.New("Products not found"), errors.New("Brand Id not Found"), errors.New("Products not found")},
-		{ []model.Prod{{1, "Shoes", model.Brand{3, ""}}}, []model.Brand{{}}, []model.Prod{{
-			1, "Shoes", model.Brand{3, ""}}}, nil, errors.New("Brand Id not Found"),  errors.New("Brand Id not found")},
+		{ pOut: []model.Prod{{Id: 1, Name: "Shoes",BrandDetails: model.Brand{Id: 3,Brand: ""}},{Id: 2,Name: "Cricket Shoes", BrandDetails: model.Brand{Id: 2, Brand: ""}}}, bOut: []model.Brand{{3, "Puma"},{2,"Nike"}}, expOut: []model.Prod{{
+			1, "Shoes", model.Brand{3, "Puma"}},{2, "Cricket Shoes", model.Brand{2, "Nike"}}}, expPerr: nil,expBerr: nil, expErr: nil},
+		{pOut: []model.Prod{}, bOut: []model.Brand{},expOut: []model.Prod{},expPerr:  errors.New("Products not found"),expBerr: errors.New("Brand Id not Found"),expErr: errors.New("Products not found")},
+		{ pOut: []model.Prod{{1, "Shoes", model.Brand{3, ""}}}, bOut: []model.Brand{{}},expOut: []model.Prod{{
+			1, "Shoes", model.Brand{3, ""}}}, expPerr: nil,expBerr: errors.New("Brand Id not Found"),  expErr: errors.New("Brand Id not found")},
 
 	}
 	for i, tc := range testcases {
@@ -81,8 +70,8 @@ func TestCatService_GetAll(t *testing.T) {
 				bS.EXPECT().GetById(v.BrandDetails.Id).Return(tc.bOut[i], tc.expBerr)
 			}
 		}
-		catServ := New(pS, bS)
-		res, err := catServ.GetAll()
+		prodService := New(pS, bS)
+		res, err := prodService.GetAll()
 		if !reflect.DeepEqual(err, tc.expErr) {
 			t.Errorf("For testcase %v, Expected %v error but got %v", i, tc.expErr, err)
 		}
@@ -92,10 +81,10 @@ func TestCatService_GetAll(t *testing.T) {
 		}
 	}
 }
-func TestCatService_Create(t *testing.T) {
+func TestProdService_Create(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	pS := product.NewMockStoreInterface(ctrl)
-	bS := brand.NewMockStoreInterface(ctrl)
+	pS := store.NewMockProduct(ctrl)
+	bS := store.NewMockBrand(ctrl)
 	testcases := []struct {
 		expCheckBrand     model.Brand
 		expCheckBrandErr  error
@@ -131,8 +120,8 @@ func TestCatService_Create(t *testing.T) {
 				bS.EXPECT().GetById(tc.expProdCreate.BrandDetails.Id).Return(tc.bOut, tc.expBerr)
 			}
 		}
-		catServ := New(pS, bS)
-		res, err := catServ.Create(tc.expProdCreate.Name, tc.expCheckBrand.Brand)
+		prodService := New(pS, bS)
+		res, err := prodService.Create(tc.expProdCreate.Name, tc.expCheckBrand.Brand)
 		if !reflect.DeepEqual(err, tc.expErr) {
 			t.Errorf("For testcase %v, Expected %v error but got %v", i, tc.expErr, err)
 		}
@@ -142,10 +131,10 @@ func TestCatService_Create(t *testing.T) {
 		}
 	}
 }
-func TestCatService_Update(t *testing.T) {
+func TestProdService_Update(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	pS := product.NewMockStoreInterface(ctrl)
-	bS := brand.NewMockStoreInterface(ctrl)
+	pS := store.NewMockProduct(ctrl)
+	bS := store.NewMockBrand(ctrl)
 	testcases := []struct {
 		expCheckBrand     model.Brand
 		expCheckBrandErr  error
@@ -181,8 +170,8 @@ func TestCatService_Update(t *testing.T) {
 				bS.EXPECT().GetById(tc.expProdCreate.BrandDetails.Id).Return(tc.bOut, tc.expBerr)
 			}
 		}
-		catServ := New(pS, bS)
-		res, err := catServ.Update(tc.expProdCreate.Id,tc.expProdCreate.Name, tc.expCheckBrand.Brand)
+		prodService := New(pS, bS)
+		res, err := prodService.Update(tc.expProdCreate.Id,tc.expProdCreate.Name, tc.expCheckBrand.Brand)
 		if !reflect.DeepEqual(err, tc.expErr) {
 			t.Errorf("For testcase %v, Expected %v error but got %v", i, tc.expErr, err)
 		}
@@ -192,25 +181,25 @@ func TestCatService_Update(t *testing.T) {
 		}
 	}
 }
-func TestCatService_Delete(t *testing.T) {
+func TestProdService_Delete(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	pS := product.NewMockStoreInterface(ctrl)
-	bS := brand.NewMockStoreInterface(ctrl)
+	pS := store.NewMockProduct(ctrl)
+	bS := store.NewMockBrand(ctrl)
 	testcases := []struct {
 		expIn int
 		expErr            error
 		expRet int
 		expRetErr error
 	}{
-		{1,nil,1,nil},
-		{10,errors.New("Product not deleted from database"),0,errors.New("Product not deleted from database")},
-		{5,errors.New("Product not deleted from database"),0,nil},
+		{expIn: 1,expErr: nil,expRet: 1,expRetErr: nil},
+		{expIn: 10,expErr: errors.New("Product not deleted from database"),expRet: 0,expRetErr: errors.New("Product not deleted from database")},
+		{expIn: 5,expErr: errors.New("Product not deleted from database"),expRet: 0,expRetErr: nil},
 	}
 
 	for i, tc := range testcases {
 		pS.EXPECT().Delete(tc.expIn).Return(tc.expRet,tc.expRetErr)
-		catServ := New(pS, bS)
-		resErr := catServ.Delete(tc.expIn)
+		prodService := New(pS, bS)
+		resErr := prodService.Delete(tc.expIn)
 		if !reflect.DeepEqual(resErr, tc.expErr) {
 			t.Errorf("For testcase %v, Expected %v error but got %v", i, tc.expErr, resErr)
 		}

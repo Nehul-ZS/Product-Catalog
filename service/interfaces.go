@@ -2,7 +2,7 @@ package service
 
 import "exercises/Catalog/model"
 
-type ServInterface interface {
+type Product interface {
 	GetById(int) (model.Prod, error)
 	GetAll()([]model.Prod,error)
 	Create(string, string) (model.Prod, error)

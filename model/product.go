@@ -5,3 +5,8 @@ type Prod struct {
 	Name         string `json:"name"`
 	BrandDetails Brand  `json:"brand"`
 }
+
+type ErrResp struct{
+	RespCode int `json:"responseCode"`
+	ErrorResp string `json:"errorResponse"`
+}

@@ -2,8 +2,8 @@ package main
 
 import (
 	"database/sql"
-	"exercises/Catalog/handler"
-	"exercises/Catalog/service"
+	product3 "exercises/Catalog/handler/product"
+	product2 "exercises/Catalog/service/product"
 	"exercises/Catalog/store/brand"
 	"exercises/Catalog/store/product"
 	_ "github.com/go-sql-driver/mysql"
@@ -20,13 +20,13 @@ func main() {
 	}
 	pS := product.New(db)
 	bS := brand.New(db)
-	catServ := service.New(pS, bS)
-	catHandle := handler.New(catServ)
+	catServ := product2.New(pS, bS)
+	catHandle := product3.New(catServ)
 	myRouter := mux.NewRouter()
-	myRouter.HandleFunc("/product", catHandle.Get).Methods("GET")
-	myRouter.HandleFunc("/product", catHandle.Create).Methods("POST")
-	myRouter.HandleFunc("/product", catHandle.Update).Methods("PUT")
-	myRouter.HandleFunc("/product", catHandle.Delete).Methods("DELETE")
+	myRouter.HandleFunc("/product", catHandle.Get).Methods(http.MethodGet)
+	myRouter.HandleFunc("/product", catHandle.Create).Methods(http.MethodPost)
+	myRouter.HandleFunc("/product", catHandle.Update).Methods(http.MethodPut)
+	myRouter.HandleFunc("/product", catHandle.Delete).Methods(http.MethodDelete)
 	err = http.ListenAndServe(":8080", myRouter)
 	if err != nil {
 		log.Println(err)

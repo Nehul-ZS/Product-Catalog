@@ -1,17 +1,18 @@
-package service
+package product
 
+import "C"
 import (
 	"errors"
 	"exercises/Catalog/model"
-	"exercises/Catalog/store/brand"
-	"exercises/Catalog/store/product"
+	"exercises/Catalog/service"
+	"exercises/Catalog/store"
 	"fmt"
 	"log"
 )
 
-type catService struct {
-	prodStore  product.StoreInterface
-	brandStore brand.StoreInterface
+type prodService struct {
+	prodStore  store.Product
+	brandStore store.Brand
 }
 
 //type category struct {
@@ -19,31 +20,22 @@ type catService struct {
 //	brandStore store.Brand
 //}
 
-func New(prodStore product.StoreInterface, brandStore brand.StoreInterface) ServInterface {
-	return catService{
+func New(prodStore store.Product, brandStore store.Brand) service.Product {
+	return prodService{
 		prodStore:  prodStore,
 		brandStore: brandStore,
 	}
 }
 
-//Invalid Id
-//type idCheck struct{
-//	id int
-//}
-//func (id idCheck)Error() string{
-//	return fmt.Sprintf("Invalid Id, Id got=%v",id.id)
-//}
-//Use return idCheck{id:1} for return error
 
-
-func (C catService) GetById(id int) (model.Prod, error) {
-	prodDet, err := C.prodStore.GetById(id)
+func (S prodService) GetById(id int) (model.Prod, error) {
+	prodDet, err := S.prodStore.GetById(id)
 	log.Println(err)
 	if err != nil {
 		log.Println(err)
 		return model.Prod{}, errors.New("Id not found")
 	}
-	brandDet, err := C.brandStore.GetById(prodDet.BrandDetails.Id)
+	brandDet, err := S.brandStore.GetById(prodDet.BrandDetails.Id)
 	log.Println(err)
 	if err != nil {
 		log.Println(err)
@@ -52,15 +44,15 @@ func (C catService) GetById(id int) (model.Prod, error) {
 	prodDet.BrandDetails.Brand = brandDet.Brand
 	return prodDet, nil
 }
-func (C catService) GetAll() ([]model.Prod, error) {
-	prodDet, err := C.prodStore.GetAll()
+func (S prodService) GetAll() ([]model.Prod, error) {
+	prodDet, err := S.prodStore.GetAll()
 	log.Println(err)
 	if err != nil {
 		log.Println(err)
 		return []model.Prod{}, errors.New("Products not found")
 	}
 	for i,p:=range prodDet {
-		brandDet, err := C.brandStore.GetById(p.BrandDetails.Id)
+		brandDet, err := S.brandStore.GetById(p.BrandDetails.Id)
 		log.Println(err)
 		if err != nil {
 			log.Println(err)
@@ -71,24 +63,24 @@ func (C catService) GetAll() ([]model.Prod, error) {
 	return prodDet, nil
 }
 
-func (C catService) Create(empName, bName string) (model.Prod, error) {
-	bId, err := C.brandStore.CheckBrand(bName)
+func (S prodService) Create(empName, bName string) (model.Prod, error) {
+	bId, err := S.brandStore.CheckBrand(bName)
 	if err != nil || bId == 0 {
-		res, err := C.brandStore.Create(bName)
+		res, err := S.brandStore.Create(bName)
 		if err != nil {
 			return model.Prod{}, errors.New("Brand not created")
 		}
 		bId = res
 	}
-	res, err := C.prodStore.Create(empName, bId)
+	res, err := S.prodStore.Create(empName, bId)
 	if err != nil {
 		return model.Prod{}, errors.New("Product not created")
 	}
-	prodDet, err := C.prodStore.GetById(res)
+	prodDet, err := S.prodStore.GetById(res)
 	if err != nil {
 		return model.Prod{}, errors.New("Created Product not found")
 	}
-	brandDet, err := C.brandStore.GetById(prodDet.BrandDetails.Id)
+	brandDet, err := S.brandStore.GetById(prodDet.BrandDetails.Id)
 	log.Println(err)
 	if err != nil {
 		log.Println(err)
@@ -97,25 +89,25 @@ func (C catService) Create(empName, bName string) (model.Prod, error) {
 	prodDet.BrandDetails.Brand = brandDet.Brand
 	return prodDet, nil
 }
-func (C catService) Update(empId int, empName, bName string) (model.Prod, error) {
-	bId, err := C.brandStore.CheckBrand(bName)
+func (S prodService) Update(empId int, empName, bName string) (model.Prod, error) {
+	bId, err := S.brandStore.CheckBrand(bName)
 	if err != nil || bId == 0 {
-		res, err := C.brandStore.Create(bName)
+		res, err := S.brandStore.Create(bName)
 		if err != nil {
 			return model.Prod{}, err
 		}
 		bId = res
 	}
-	res, err := C.prodStore.Update(empId,empName, bId)
+	res, err := S.prodStore.Update(empId,empName, bId)
 	if err != nil {
 		return model.Prod{}, errors.New("Product not updated")
 	}
 	fmt.Println(res)
-	prodDet, err := C.prodStore.GetById(empId)
+	prodDet, err := S.prodStore.GetById(empId)
 	if err != nil {
 		return model.Prod{}, errors.New("Updated Product not found")
 	}
-	brandDet, err := C.brandStore.GetById(prodDet.BrandDetails.Id)
+	brandDet, err := S.brandStore.GetById(prodDet.BrandDetails.Id)
 	log.Println(err)
 	if err != nil {
 		log.Println(err)
@@ -124,8 +116,8 @@ func (C catService) Update(empId int, empName, bName string) (model.Prod, error)
 	prodDet.BrandDetails.Brand = brandDet.Brand
 	return prodDet, nil
 }
-func (C catService) Delete(empId int) error {
-	res, err := C.prodStore.Delete(empId)
+func (S prodService) Delete(empId int) error {
+	res, err := S.prodStore.Delete(empId)
 	if err != nil || res != 1 {
 		return  errors.New("Product not deleted from database")
 	}

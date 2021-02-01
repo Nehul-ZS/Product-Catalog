@@ -3,15 +3,15 @@ package brand
 import (
 	"database/sql"
 	"exercises/Catalog/model"
+	"exercises/Catalog/store"
 	_ "github.com/go-sql-driver/mysql"
-	"log"
 )
 
 type brandStore struct {
 	DB *sql.DB
 }
 
-func New(db *sql.DB) StoreInterface {
+func New(db *sql.DB) store.Brand {
 	return brandStore{
 		DB: db,
 	}
@@ -30,7 +30,6 @@ func (bS brandStore) CheckBrand(bName string) (int, error) {
 		rescount = rescount + 1
 		err := res.Scan(&b.Id)
 		if err != nil {
-			log.Println(err)
 			return 0, err
 		}
 	}
@@ -43,13 +42,11 @@ func (bS brandStore) CheckBrand(bName string) (int, error) {
 func (bS brandStore) Create(bName string) (int, error) {
 	res, err := bS.DB.Exec("insert into brand(brand) values(?)", bName)
 	if err != nil {
-		log.Println(err)
 		return 0, err
 		//return 0, errors.New("Brand not created")
 	}
 	lastId, err := res.LastInsertId()
 	if err != nil || lastId==0{
-		log.Println(err)
 		return 0, err
 	}
 	return int(lastId), nil
@@ -60,7 +57,6 @@ func (bS brandStore) GetById(key int) (model.Brand, error) {
 	var err error
 	res, err = bS.DB.Query("select B.id,B.brand from brand as B where id=?", key)
 	if err != nil {
-		log.Println(err)
 		return model.Brand{}, err
 		//return model.Brand{}, errors.New("Brand Id not Found")
 	}
@@ -68,7 +64,6 @@ func (bS brandStore) GetById(key int) (model.Brand, error) {
 	for res.Next() {
 		err = res.Scan(&b.Id, &b.Brand)
 		if err != nil {
-			log.Println(err)
 			return model.Brand{}, err
 		}
 	}
@@ -82,7 +77,6 @@ func (bS brandStore) GetAll() ([]model.Brand, error) {
 	brandDet:=make([]model.Brand,0)
 	res, err = bS.DB.Query("select B.id,B.brand from brand as B")
 	if err != nil {
-		log.Println(err)
 		return []model.Brand{}, err
 		//return []model.Brand{}, errors.New("Brands not Found")
 	}
@@ -90,7 +84,6 @@ func (bS brandStore) GetAll() ([]model.Brand, error) {
 	for res.Next() {
 		err = res.Scan(&b.Id, &b.Brand)
 		if err != nil {
-			log.Println(err)
 			return []model.Brand{}, err
 		}
 		brandDet=append(brandDet,b)
